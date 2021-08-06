@@ -1,0 +1,97 @@
+version: '3.8'
+services:
+    backend-django:
+        container_name: django-microservice-1
+        restart: unless-stopped
+        build:
+        context: ./django-admin
+        dockerfile: Dockerfile
+        command: 'nodemon --exec python manage.py runserver 0.0.0.0:8000'
+        ports:
+            - 8001:8000
+        volumes:
+            - .:/app
+        depends_on: 
+            - database-django-services
+        networks:
+            - python-microservices
+  
+    queue-django:
+        container_name: django-microservice-queue-1
+        build:
+            context: ./flask-microservice-1
+            dockerfile: Dockerfile
+        command: 'nodemon --exec python consumer.py'
+        volumes:
+            - .:/app
+        depends_on:
+            - database-django-services
+        networks:
+            - python-microservices
+
+    backend-flask:
+        container_name: ./flask-microservice-1
+        restart: unless-stopped
+        build:
+            context: ./django-admin
+            dockerfile: Dockerfile
+        command: 'nodemon --exec python main.py'
+        ports:
+            - 8002:5000
+        volumes:
+            - .:/app
+        depends_on: 
+            - database-flask-services
+        networks:
+            - python-microservices
+    
+    queue-flask:
+        container_name: ./flask-microservice-queue-1
+        build:
+            context: ./flask-microservice-1
+            dockerfile: Dockerfile
+        command: 'nodemon --exec python consumer.py'
+        volumes:
+            - .:/app
+        depends_on:
+            - database-flask-services
+        networks:
+            - python-microservices
+      
+    database-flask-services:
+        image: mysql:8.0.21
+        restart: unless-stopped
+        container_name: flask-microservice-1-db
+        command: --default-authentication-plugin=mysql_native_password
+        environment:
+            MYSQL_DATABASE: main
+            MYSQL_USER: root
+            MYSQL_PASSWORD: root
+            MYSQL_ROOT_PASSWORD: root
+        ports:
+            - 33067:3306
+        networks:
+            - python-microservices
+
+    database-django-services:
+        image: mysql:8.0.21
+        restart: unless-stopped
+        container_name: django-microservice-1-db
+        command: --default-authentication-plugin=mysql_native_password
+        environment:
+            MYSQL_DATABASE: admin
+            MYSQL_USER: root
+            MYSQL_PASSWORD: root
+            MYSQL_ROOT_PASSWORD: root
+        ports:
+            - 33066:3306
+        networks:
+            - python-microservices
+
+networks:
+    python-microservices
+    driver:
+        bridge
+
+
+    
